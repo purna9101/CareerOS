@@ -23,10 +23,28 @@ def get_db():
     finally:
         db.close()
 
-@app.get("/applications")
-def Create_application(application: ApplicationCreate, db: Session = Depends(get_db):
-    new_application = Application(company=application.company,
-                                  position = application.position,
-                                  status=application.status,
-                                  )
-                                  
+@app.post("/applications")
+def create_application(
+    application: ApplicationCreate,
+    db: Session = Depends(get_db)
+):
+    new_application = Application(
+        company=application.company,
+        position=application.position,
+        status=application.status,
+    )
+
+    db.add(new_application)
+    db.commit()
+    db.refresh(new_application)
+
+    return new_application
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "CareerOS API",
+        "version": "0.1.0"
+    }
