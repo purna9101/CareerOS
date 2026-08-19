@@ -7,14 +7,22 @@ from app.models import Base
 from app.schemas import ApplicationCreate
 from app.models import Application
 
-app = FastAPI()
+app = FastAPI(
+    title="CareerOS API",
+    description="Backend API for managing and tracking job applications.",
+    version="0.1.0",
+)
 
 Base.metadata.create_all(bind=engine)
 
 
-@app.get("/")
+@app.get("/", tags=["System"])
 def home():
-    return {"message": "CareerOS Backend Running 🚀"}
+    return {
+        "service": "CareerOS API",
+        "status": "running",
+        "version": "0.1.0",
+    }
 
 def get_db():
     db = SessionLocal()
@@ -48,3 +56,5 @@ def health_check():
         "service": "CareerOS API",
         "version": "0.1.0"
     }
+
+
