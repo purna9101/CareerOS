@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal 
 from app.database import engine
 from app.models import Base
-from app.schemas import ApplicationCreate
+from app.schemas import ApplicationCreate, ApplicationResponse
 from app.models import Application
 
 app = FastAPI(
@@ -57,4 +57,9 @@ def health_check():
         "version": "0.1.0"
     }
 
+
+@app.get("/applications", response_model=list[ApplicationResponse])
+def get_applications(db : Session  = Depends(get_db)):
+    applications = db.query(Application).all()
+    return applications 
 
