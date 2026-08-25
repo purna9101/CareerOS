@@ -1,5 +1,4 @@
-from fastapi import FastAPI
-from fastapi import Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import SessionLocal 
 from app.database import engine
@@ -59,7 +58,16 @@ def health_check():
 
 
 @app.get("/applications", response_model=list[ApplicationResponse])
-def get_applications(db : Session  = Depends(get_db)):
+def get_applications(db: Session  = Depends(get_db)):
     applications = db.query(Application).all()
     return applications 
 
+@app.get("/applications/{application_id}" , response_model=ApplicationResponse)
+def get_application(application_id : int, db: Session = Depends(get_db)):
+    application = db.get(Application,application_id)
+    if application is None:
+        raise HTTPException(
+            status_code = 404,
+            detail=" application not found "
+            )
+    return application
