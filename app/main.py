@@ -71,3 +71,20 @@ def get_application(application_id : int, db: Session = Depends(get_db)):
             detail=" application not found "
             )
     return application
+
+@app.put("/applications/{application_id}", response_model=ApplicationCreate)
+def update_application(application_id :int , data: ApplicationCreate,db:Session=Depends(get_db)):
+    application =  db.get(Application,application_id)
+    if application is None :
+        raise HTTPException(
+            status_code =404, 
+            detail="application not found"
+        )
+    application.company = data.company
+    application.position = data.position
+    application.status = data.status
+
+    db.commit()
+    db.refresh(application)
+
+    return application
