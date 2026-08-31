@@ -15,4 +15,7 @@ class ApplicationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes = True)
 
-    
+class ApplicationDelete(BaseModel):
+    message : str
+
+    model_config = ConfigDict(from_attributes = True)

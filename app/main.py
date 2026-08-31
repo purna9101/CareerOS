@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal 
 from app.database import engine
 from app.models import Base
-from app.schemas import ApplicationCreate, ApplicationResponse
+from app.schemas import ApplicationCreate, ApplicationResponse, ApplicationDelete
 from app.models import Application
 
 app = FastAPI(
@@ -88,3 +88,15 @@ def update_application(application_id :int , data: ApplicationCreate,db:Session=
     db.refresh(application)
 
     return application
+
+@app.delete("/applications/{application_id}", response_model=ApplicationDelete)
+def delete_application(application_id :int, db:Session=Depends(get_db)):
+    application = db.get(Application,application_id)
+    if application is None:
+        raise HTTPException(
+            status_code=404,
+            detail="application not found"
+        )
+    db.delete(application)
+    db.commit()
+    return {"message":"application deleted"}
