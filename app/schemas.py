@@ -18,4 +18,7 @@ class ApplicationResponse(BaseModel):
 class ApplicationDelete(BaseModel):
     message : str
 
-    model_config = ConfigDict(from_attributes = True)
+class ApplicationUpdate(BaseModel):
+    company : str | None = None
+    position: str | None = None
+    status  : str | None = None
