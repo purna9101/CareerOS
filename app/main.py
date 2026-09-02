@@ -58,8 +58,27 @@ def health_check():
 
 
 @app.get("/applications", response_model=list[ApplicationResponse])
-def get_applications(db: Session  = Depends(get_db)):
-    applications = db.query(Application).all()
+def get_applications(
+    company: str | None = None,
+    position: str | None = None,
+    status: str | None = None,
+    db: Session = Depends(get_db)):
+
+    query = db.query(Application)
+    if company is not None:
+        company = company.strip()
+        if company:
+            query = query.filter(Application.company.ilike(f"%{company}%"))
+    if position is not None:
+        position = position.strip()
+        if position:
+            query = query.filter(Application.position.ilike(f"%{position}%"))
+    if status is not None:
+        status = status.strip()
+        if status:
+            query = query.filter(Application.status.ilike(status))
+
+    applications = query.all()
     return applications 
 
 @app.get("/applications/{application_id}" , response_model=ApplicationResponse)
