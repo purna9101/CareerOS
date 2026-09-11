@@ -96,12 +96,12 @@ def update_application(application_id :int , data: ApplicationCreate,db:Session=
     application =  db.get(Application,application_id)
     if application is None :
         raise HTTPException(
-            status_code =404, 
-            detail="application not found"
+            status_code= 404, 
+            detail= "application not found"
         )
-    application.company = data.company
-    application.position = data.position
-    application.status = data.status
+    application.company= data.company
+    application.position= data.position
+    application.status= data.status
 
     db.commit()
     db.refresh(application)
@@ -122,7 +122,7 @@ def delete_application(application_id :int, db:Session=Depends(get_db)):
     return {"message":"application deleted"}
 
 
-@app.patch("/applications/{application_id}",response_model=ApplicationCreate)
+@app.patch("/applications/{application_id}",response_model=ApplicationResponse)
 def patch_application(application_id :int, data : ApplicationUpdate, db :Session=Depends(get_db)):
     application = db.get(Application,application_id)
     if application is None:
@@ -135,7 +135,7 @@ def patch_application(application_id :int, data : ApplicationUpdate, db :Session
     if data.position is not None:
         application.position = data.position
     if data.status is not None:
-        application.status = data.status
+        application.status = data.status.value
     db.commit()
     db.refresh(application)
 
