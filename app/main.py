@@ -38,7 +38,7 @@ def create_application(
     new_application = Application(
         company=application.company,
         position=application.position,
-        status=application.status,
+        status=application.status.value,
     )
 
     db.add(new_application)

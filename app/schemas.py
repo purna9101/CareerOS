@@ -1,20 +1,20 @@
-from pydantic import BaseModel, ConfigDict, field_validator, BeforeValidator
+from pydantic import BaseModel, ConfigDict, BeforeValidator
 from enum import Enum
 from typing import Annotated
 
 
 class ApplicationStatus(Enum):
-    APPLIED=   "applied"
-    INTERVIEW= "interview"
-    OFFER=     "offer"
-    SELECTED=  "selected"
-    REJECTED=  "rejected"
+    APPLIED = "applied"
+    INTERVIEW = "interview"
+    OFFER = "offer"
+    SELECTED = "selected"
+    REJECTED = "rejected"
 
 def normalize_status(value):
-    value= value.strip()
-    value= value.lower()
+    value = value.strip()
+    value = value.lower()
     if not value:
-        raise ValueError("Invalid Status ")
+        raise ValueError("status cannot be empty")
         
     return value
 
@@ -30,7 +30,7 @@ Status = Annotated[
     BeforeValidator(normalize_status)
 ]
 
-NonEmptyString= Annotated[
+NonEmptyString = Annotated[
     str,
     BeforeValidator(normalize_text)
 ]
@@ -43,17 +43,17 @@ class ApplicationCreate(BaseModel):
 
 
 class ApplicationResponse(BaseModel):
-    id : int
-    company : str
+    id: int
+    company: str
     position: str
-    status  : str
+    status: str
 
-    model_config = ConfigDict(from_attributes = True)
+    model_config = ConfigDict(from_attributes=True)
 
 class ApplicationDelete(BaseModel):
-    message : str
+    message: str
 
 class ApplicationUpdate(BaseModel):
-    company : NonEmptyString | None = None
+    company: NonEmptyString | None = None
     position: NonEmptyString | None = None
-    status  : Status | None = None
+    status: Status | None = None
