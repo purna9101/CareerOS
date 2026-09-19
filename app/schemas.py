@@ -9,6 +9,7 @@ class ApplicationStatus(Enum):
     OFFER = "offer"
     SELECTED = "selected"
     REJECTED = "rejected"
+    GHOSTED = "ghosted"
 
 def normalize_status(value):
     value = value.strip()
