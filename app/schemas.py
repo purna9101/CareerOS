@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, BeforeValidator
+from pydantic import BaseModel, ConfigDict, BeforeValidator, Field
 from enum import Enum
 from typing import Annotated
 
@@ -36,10 +36,19 @@ NonEmptyString = Annotated[
     BeforeValidator(normalize_text)
 ]
 
+CompanyName = Annotated[
+    NonEmptyString,
+    Field(max_length=255),
+]
+
+PositionName = Annotated[
+    NonEmptyString,
+    Field(max_length=255),
+]
 
 class ApplicationCreate(BaseModel):
-    company: NonEmptyString
-    position: NonEmptyString
+    company:  CompanyName
+    position: PositionName
     status: Status
 
 
@@ -55,6 +64,6 @@ class ApplicationDelete(BaseModel):
     message: str
 
 class ApplicationUpdate(BaseModel):
-    company: NonEmptyString | None = None
-    position: NonEmptyString | None = None
+    company: CompanyName | None = None
+    position: PositionName | None = None
     status: Status | None = None
