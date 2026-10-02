@@ -1,8 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import SessionLocal 
-from app.database import engine
-from app.models import Base
 from app.schemas import ApplicationCreate, ApplicationResponse, ApplicationDelete, ApplicationUpdate 
 from app.models import Application
 
@@ -12,7 +10,6 @@ app = FastAPI(
     version="0.1.0",
 )
 
-Base.metadata.create_all(bind=engine)
 
 
 @app.get("/", tags=["System"])
