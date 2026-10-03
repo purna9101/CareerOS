@@ -12,23 +12,34 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 test_engine = create_engine(TEST_DATABASE_URL)
 TestSessionLocal = sessionmaker(bind=test_engine)
 
-def override_get_db():
-    db = TestSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@pytest.fixture
+def db_connection():
+    connection = test_engine.connect()
+    transaction = connection.begin()
 
+    yield connection
 
-app.dependency_overrides[get_db] = override_get_db
+    transaction.rollback()
+    connection.close()
 
+@pytest.fixture
+def client(db_connection):
+    def override_get_db():
+        db = TestSessionLocal(bind=db_connection)
+        try:
+            yield db
+        finally:
+            db.close()
 
-client = TestClient(app)
+    app.dependency_overrides[get_db] = override_get_db
 
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def application():
+def application(client):
     response = client.post(
         "/applications",
         json ={
@@ -46,7 +57,7 @@ def test_fixture_application(application):
     assert application["status"] == "applied"
 
 
-def test_create_application():
+def test_create_application(client):
     response = client.post(
         "/applications",
         json={
@@ -61,7 +72,7 @@ def test_create_application():
     assert response.json()["position"] == "Backend Developer"
     assert response.json()["status"] == "applied"
 
-def test_create_application_invalid_status():
+def test_create_application_invalid_status(client):
     response = client.post(
         "/applications",
         json={
@@ -73,7 +84,7 @@ def test_create_application_invalid_status():
 
     assert response.status_code == 422 
 
-def test_create_application_blank_company():
+def test_create_application_blank_company(client):
     response = client.post(
         "/applications",
         json={
@@ -85,7 +96,7 @@ def test_create_application_blank_company():
 
     assert response.status_code == 422
 
-def test_create_application_company_too_long():
+def test_create_application_company_too_long(client):
     response = client.post(
         "/applications",
         json={
@@ -97,17 +108,19 @@ def test_create_application_company_too_long():
 
     assert response.status_code == 422 
 
-def test_patch_application_company_too_long():
+def test_patch_application_company_too_long(client, application):
+    application_id = application["id"]
+
     response = client.patch(
-        "/applications/5",
-        json = {
+        f"/applications/{application_id}",
+        json={
             "company": "A" * 256,
-        }
+        },
     )
 
     assert response.status_code == 422
 
-def test_patch_application_company(application):
+def test_patch_application_company(client,application):
     application_id = application["id"]
 
     response = client.patch(
@@ -123,7 +136,7 @@ def test_patch_application_company(application):
     assert response.json()["status"] == "applied"
 
 
-def test_get_application(application):
+def test_get_application(client,application):
     application_id = application["id"]
     response = client.get(f"/applications/{application_id}")
 
@@ -133,12 +146,12 @@ def test_get_application(application):
     assert response.json()["position"] == "Test Developer"
     assert response.json()["status"] == "applied"
 
-def test_get_application_not_found():
+def test_get_application_not_found(client):
     response = client.get("/applications/999999")
 
     assert response.status_code == 404
 
-def test_delete_application(application):
+def test_delete_application(client,application):
     application_id = application["id"]
     response = client.delete(f"/applications/{application_id}")
 
@@ -149,4 +162,4 @@ def test_delete_application(application):
     )
 
     assert response.status_code == 404
-    
+
