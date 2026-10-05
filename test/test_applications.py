@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
+from app.main import global_exception_handler
 from app.main import get_db
 import pytest
 import os
@@ -33,7 +34,10 @@ def client(db_connection):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    yield TestClient(app)
+    yield TestClient(
+        app,
+        raise_server_exceptions=False,
+        )
 
     app.dependency_overrides.clear()
 
@@ -163,3 +167,14 @@ def test_delete_application(client,application):
 
     assert response.status_code == 404
 
+
+
+@pytest.mark.anyio
+async def test_global_exception_handler():
+    response = await global_exception_handler(
+        None,
+        RuntimeError("test error"),
+    )
+
+    assert response.status_code == 500
+    assert response.body == b'{"detail":"Internal server error"}'

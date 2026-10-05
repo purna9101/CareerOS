@@ -1,14 +1,27 @@
+import logging
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import SessionLocal 
+from app.database import SessionLocal
 from app.schemas import ApplicationCreate, ApplicationResponse, ApplicationDelete, ApplicationUpdate 
 from app.models import Application
+from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="CareerOS API",
     description="Backend API for managing and tracking job applications.",
     version="0.1.0",
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.exception("Unhandled application exception")
+
+    return JSONResponse(
+        status_code= 500,
+        content ={"detail": "Internal server error"}
+    )
 
 
 
@@ -135,5 +148,7 @@ def patch_application(application_id :int, data : ApplicationUpdate, db :Session
         application.status = data.status.value
     db.commit()
     db.refresh(application)
-
     return application
+
+
+
