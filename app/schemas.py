@@ -12,6 +12,9 @@ class ApplicationStatus(Enum):
     GHOSTED = "ghosted"
 
 def normalize_status(value):
+    if not isinstance(value, str):
+        raise ValueError("value must be a string")
+    
     value = value.strip()
     value = value.lower()
     if not value:
@@ -20,6 +23,9 @@ def normalize_status(value):
     return value
 
 def normalize_text(value):
+    if not isinstance(value, str):
+        raise ValueError("value must be a string")
+    
     value= value.strip()
     if not value:
         raise ValueError("field cannot be empty")
