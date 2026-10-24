@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, BeforeValidator, Field
+from pydantic import BaseModel, ConfigDict, BeforeValidator, Field, EmailStr
 from enum import Enum
 from typing import Annotated
 
@@ -52,6 +52,16 @@ PositionName = Annotated[
     Field(max_length=255),
 ]
 
+PasswordString = Annotated[
+    NonEmptyString,
+    Field(min_length=8, max_length=255),
+]
+
+UsernameString = Annotated[
+    NonEmptyString,
+        Field(max_length=255),
+]
+
 class ApplicationCreate(BaseModel):
     company:  CompanyName
     position: PositionName
@@ -73,3 +83,8 @@ class ApplicationUpdate(BaseModel):
     company: CompanyName | None = None
     position: PositionName | None = None
     status: Status | None = None
+
+class UserCreate(BaseModel):
+    username: UsernameString
+    email: EmailStr
+    password: PasswordString
