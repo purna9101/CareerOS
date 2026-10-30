@@ -2,8 +2,9 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.schemas import ApplicationCreate, ApplicationResponse, ApplicationDelete, ApplicationUpdate 
-from app.models import Application
+from app.schemas import ApplicationCreate, ApplicationResponse, ApplicationDelete, ApplicationUpdate, UserCreate,UserResponse
+from app.models import Application, User
+from app.security import hash_password, verify_password
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -50,11 +51,35 @@ def get_db():
     finally:
         db.close()
 
+@app.post("/users/register",response_model=UserResponse,status_code=201)
+def User_Register(user : UserCreate, db: Session = Depends(get_db) ):
+    check_field = db.query(User).filter(
+        (User.email == user.email) |
+        (User.username == user.username)
+    ).first()
+    if check_field is not None:
+        raise HTTPException(
+            status_code =  409 ,
+            detail = "email or username is already exists "
+        )
+    hashed_password = hash_password(user.password)
+
+    new_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
 @app.post("/applications")
 def create_application(
     application: ApplicationCreate,
     db: Session = Depends(get_db)
 ):
+    
     new_application = Application(
         company=application.company,
         position=application.position,

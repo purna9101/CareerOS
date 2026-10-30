@@ -88,3 +88,10 @@ class UserCreate(BaseModel):
     username: UsernameString
     email: EmailStr
     password: PasswordString
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+
+    model_config = {"from_attributes": True}

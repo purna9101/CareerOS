@@ -1,26 +1,46 @@
 # CareerOS
 
-**A REST API for tracking job applications and organizing the job search.**
+**A Python backend API for managing job applications and organizing the job search.**
 
-CareerOS helps users record job applications, track their status, and manage application details in one place. I built it to solve the problem of tracking applications across companies and roles while strengthening my backend engineering skills through a practical project.
+CareerOS is a REST API that helps users track job applications, manage application details, and organize their job search.
 
-**Tech stack:** Python · FastAPI · PostgreSQL · SQLAlchemy · Pydantic · Alembic
+The project is built using Python, FastAPI, and PostgreSQL, with an emphasis on backend engineering fundamentals, database integrity, API validation, authentication foundations, and automated testing.
 
-### Current capabilities
+**Tech Stack:** Python · FastAPI · PostgreSQL · SQLAlchemy · Pydantic · Alembic · pytest
 
-- Application CRUD operations
-- Request validation and status normalization
-- PostgreSQL persistence and database constraints
-- Version-controlled database migrations
-- Automated API tests
+[GitHub Repository](https://github.com/purna9101/CareerOS)
 
-### Project focus
+## Current Features
 
-Backend API design, data integrity, validation, testing, and secure authentication.
+### Application Management
+
+- Create, retrieve, update, and delete job applications.
+- Retrieve applications using company, position, and status filters.
+- Validate incoming application data.
+- Normalize application status values.
+
+### User Registration
+
+- Register users with a username, email, and password.
+- Validate email addresses and password requirements using Pydantic.
+- Prevent duplicate usernames and email addresses.
+- Hash passwords using Argon2 through `pwdlib`.
+- Store user credentials securely using a hashed-password field.
+- Return a dedicated response schema that excludes passwords and password hashes.
+
+### Database and Reliability
+
+- PostgreSQL persistence using SQLAlchemy ORM.
+- Database-level constraints for data integrity.
+- Version-controlled database migrations using Alembic.
+- Global exception handling that avoids exposing internal error details.
+- Automated API testing using pytest and a dedicated PostgreSQL test database.
 
 ## Architecture
 
-CareerOS follows a layered architecture that separates request validation, API logic, database access, and persistence.
+CareerOS follows a layered backend architecture that separates request validation, API logic, database access, and persistence.
+
+### Application request flow
 
 ```mermaid
 flowchart TD
@@ -42,73 +62,179 @@ flowchart TD
     L --> M["HTTP Response"]
 ```
 
+### User registration flow
+
+```mermaid
+flowchart TD
+    A["Registration Request"] --> B["UserCreate Schema"]
+    B --> C{"Input Valid?"}
+
+    C -->|No| D["HTTP 422 Response"]
+    C -->|Yes| E["Check Existing Username / Email"]
+
+    E -->|Already Exists| F["HTTP 409 Conflict"]
+    E -->|Available| G["Hash Password"]
+
+    G --> H["Create User ORM Object"]
+    H --> I["SQLAlchemy Session"]
+    I --> J[("PostgreSQL")]
+
+    J --> K["UserResponse Schema"]
+    K --> L["Return User Details"]
+```
+
 ### Component responsibilities
 
-1. **FastAPI** — Routes HTTP requests to the appropriate endpoint and manages dependency injection.
-2. **Pydantic** — Validates request data and applies defined normalization rules.
-3. **SQLAlchemy** — Manages ORM models, database sessions, and database operations.
-4. **PostgreSQL** — Persists application records and enforces database constraints.
-5. **Error handling** — Returns appropriate HTTP responses for invalid input, missing records, and unexpected errors.
-
-### Data persistence
-
-For a create request, the endpoint adds the new application to the SQLAlchemy session, commits the transaction, refreshes the ORM object when needed, and returns the response to the client.
+| Component  | Responsibility                                                    |
+| ---------- | ----------------------------------------------------------------- |
+| FastAPI    | HTTP routing, endpoint execution, and dependency injection        |
+| Pydantic   | Request validation, field constraints, and response serialization |
+| SQLAlchemy | ORM models, database sessions, and database operations            |
+| PostgreSQL | Persistent storage and database-level integrity                   |
+| Alembic    | Version-controlled database schema changes                        |
+| pwdlib     | Password hashing and verification                                 |
+| pytest     | Automated API and application testing                             |
 
 ## Database Design and Integrity
 
-CareerOS uses PostgreSQL for persistent storage and SQLAlchemy ORM to map database tables to Python models.
+CareerOS uses PostgreSQL for persistent storage and SQLAlchemy ORM for database interaction.
 
 ### Applications table
 
-The `applications` table stores job application records.
+Stores job application records.
 
-| Column     | Purpose                                                         |
-| ---------- | --------------------------------------------------------------- |
-| `id`       | Primary key identifying an application                          |
-| `company`  | Company name; required and indexed                              |
-| `position` | Job position; required                                          |
-| `status`   | Application status; required and restricted to supported values |
+| Column     | Purpose                                                      |
+| ---------- | ------------------------------------------------------------ |
+| `id`       | Primary key                                                  |
+| `company`  | Required company name; indexed                               |
+| `position` | Required job position                                        |
+| `status`   | Required application status with a database check constraint |
+
+Supported application statuses:
+
+`applied`, `interview`, `offer`, `selected`, `rejected`, `ghosted`
+
+### Users table
+
+Stores registered user information.
+
+| Column            | Purpose                                           |
+| ----------------- | ------------------------------------------------- |
+| `id`              | Primary key                                       |
+| `username`        | Required and unique username                      |
+| `email`           | Required and unique email address                 |
+| `hashed_password` | Password hash; never stores the original password |
 
 ### Data integrity
 
-- **NOT NULL constraints** prevent required fields from being stored as `NULL`.
-- **Status check constraint** restricts stored statuses to the supported application lifecycle values.
-- **Unique indexes on user identity fields** prevent duplicate usernames and email addresses.
-- **Alembic migrations** version database schema changes so they can be applied and tracked consistently.
-
-### Schema evolution
-
-Database changes are managed through versioned Alembic migrations rather than relying solely on automatic table creation. This makes schema changes explicit and reviewable.
+- NOT NULL constraints prevent missing required values.
+- Unique constraints prevent duplicate usernames and email addresses.
+- A status check constraint restricts application statuses to supported values.
+- Alembic migrations make database schema changes explicit and reviewable.
 
 ## Validation and Error Handling
 
-CareerOS validates incoming application data before persisting it to PostgreSQL.
+CareerOS validates incoming data before processing database operations.
 
 ### Request validation
 
 - Required text fields reject empty or whitespace-only values.
 - Company and position fields enforce maximum lengths.
 - Application statuses are restricted to supported values.
-- Status input is normalized before validation, where applicable.
+- User email addresses are validated using `EmailStr`.
+- Registration passwords require at least eight characters.
 
-### Error handling
+### HTTP error handling
 
-The API returns appropriate HTTP responses for successful operations, invalid requests, missing application records, and unexpected server errors.
+| Status | Meaning                         |
+| ------ | ------------------------------- |
+| `200`  | Successful request              |
+| `404`  | Requested application not found |
+| `409`  | Duplicate username or email     |
+| `422`  | Request validation failed       |
+| `500`  | Unexpected server error         |
 
-Unexpected errors are handled without exposing internal exception details to API clients.
+Unexpected errors are logged internally without exposing exception details to API clients.
+
+## Password Security
+
+User registration uses password hashing rather than storing plaintext passwords.
+
+The implementation uses `pwdlib` with its recommended Argon2 configuration.
+
+Password handling flow:
+
+1. Receive the password through the registration request.
+2. Hash the password using `hash_password()`.
+3. Store the resulting hash in `hashed_password`.
+4. Exclude password-related fields from API responses.
+
+The API uses separate Pydantic schemas for incoming user data (`UserCreate`) and outgoing user data (`UserResponse`).
 
 ## Testing
 
-CareerOS uses `pytest` and FastAPI's test client to test API behavior.
+CareerOS uses pytest and FastAPI's test client.
 
-The existing test suite covers application CRUD operations, request validation, and error handling.
+The existing application test suite covers CRUD operations, request validation, and error handling.
 
-Tests use a dedicated PostgreSQL test database separate from the application database. FastAPI dependency overrides allow tests to control database access.
+Tests use a dedicated PostgreSQL test database separate from the application database. FastAPI dependency overrides allow database access to be controlled during testing.
 
-Run the tests locally:
+Registration has also been manually verified through Swagger UI for:
+
+- Successful user registration.
+- Duplicate username or email rejection.
+- Password minimum-length validation.
+- Safe response serialization.
+
+Run automated tests:
 
 ```bash
 pytest -v
+```
+
+## API Reference
+
+Interactive API documentation is available through FastAPI Swagger UI at `/docs`.
+
+### Application endpoints
+
+| Method   | Endpoint                         | Description                             |
+| -------- | -------------------------------- | --------------------------------------- |
+| `POST`   | `/applications`                  | Create an application                   |
+| `GET`    | `/applications`                  | List applications with optional filters |
+| `GET`    | `/applications/{application_id}` | Retrieve an application                 |
+| `PUT`    | `/applications/{application_id}` | Replace an application                  |
+| `PATCH`  | `/applications/{application_id}` | Partially update an application         |
+| `DELETE` | `/applications/{application_id}` | Delete an application                   |
+
+### User endpoints
+
+| Method | Endpoint          | Description         |
+| ------ | ----------------- | ------------------- |
+| `POST` | `/users/register` | Register a new user |
+
+### Registration example
+
+**Request:**
+
+`POST /users/register`
+
+```json
+{
+  "username": "arjun",
+  "email": "arjun@example.com",
+  "password": "secret123"
+}
+```
+
+**Successful response:**
+
+```json
+{
+  "id": 1,
+  "username": "arjun",
+  "email": "arjun@example.com"
+}
 ```
 
 ## Getting Started
@@ -126,13 +252,13 @@ git clone https://github.com/purna9101/CareerOS.git
 cd CareerOS
 ```
 
-### 2. Create and activate a virtual environment
+### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-Windows PowerShell:
+Activate it using Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -146,9 +272,17 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Create a `.env` file in the project root and configure `DATABASE_URL` with your local PostgreSQL connection string.
+Create a `.env` file in the project root.
 
-Never commit `.env` or database credentials.
+Configure your PostgreSQL connection:
+
+```env
+DATABASE_URL=postgresql+psycopg://postgres:YOUR_PASSWORD@localhost:5432/careeros
+```
+
+Replace the placeholder with your local PostgreSQL credentials.
+
+Never commit `.env` files or database credentials.
 
 ### 5. Apply database migrations
 
@@ -156,44 +290,41 @@ Never commit `.env` or database credentials.
 alembic upgrade head
 ```
 
-### 6. Start the application
+### 6. Start the development server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/docs` to explore the API using Swagger UI.
+Open the following URL to access Swagger UI:
 
-## API Examples
+`http://127.0.0.1:8000/docs`
 
-### Create an application
+## Engineering Focus
 
-`POST /applications`
+CareerOS is being developed incrementally using a practical backend engineering workflow:
 
-```json
-{
-  "company": "Example Technologies",
-  "position": "Python Backend Developer",
-  "status": "applied"
-}
-```
+**Understand → Reason → Implement → Test → Review → Commit → Explain**
 
-### List applications
+The project focuses on:
 
-`GET /applications`
+- REST API design and HTTP semantics.
+- Relational database design and integrity.
+- Secure password handling.
+- Request validation and error handling.
+- Database migrations.
+- Automated testing and maintainable code.
 
-The API supports filtering applications by company, position, and status.
+## Future Development
 
-### Retrieve an application
+Planned improvements include:
 
-`GET /applications/{application_id}`
+- User login and JWT-based authentication.
+- Protected endpoints and per-user application ownership.
+- Resume upload and association with job applications.
+- Application analytics and job-search insights.
+- Docker-based deployment and CI/CD automation.
 
-### Update an application
+---
 
-`PATCH /applications/{application_id}`
-
-### Delete an application
-
-`DELETE /applications/{application_id}`
-
-See the interactive Swagger documentation at `/docs` for request schemas and response details.
+**CareerOS — Building a practical foundation in Python backend engineering.**
